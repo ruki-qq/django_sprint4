@@ -1,8 +1,10 @@
 from django.urls import path
 
 from . import views
+from .views import ProfileDetailView
 
 app_name = 'blog'
+
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -12,4 +14,6 @@ urlpatterns = [
         views.category_posts,
         name='category_posts',
     ),
+    path('create_post/', views.index, name='create_post'),
+    path('profile/<slug:slug>/', ProfileDetailView.as_view(), name='profile'),
 ]

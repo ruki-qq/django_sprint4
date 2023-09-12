@@ -1,10 +1,21 @@
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
-from django.views.generic import ListView
+from django.views.generic import DetailView, ListView
 
 from .models import Category, Post
 
+UserModel = get_user_model()
+
+
 POSTS_COUNT = 5
+
+
+class ProfileDetailView(DetailView):
+    model = UserModel
+    template_name = 'blog/profile.html'
+    slug_field = 'username'
+    context_object_name = 'profile'
 
 
 class PostListView(ListView):
