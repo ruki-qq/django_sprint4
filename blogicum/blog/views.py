@@ -1,9 +1,15 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, render
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    UpdateView,
+    DeleteView,
+)
 from django.views.generic.list import MultipleObjectMixin
 
 from .forms import CommentForm, PostForm
@@ -26,6 +32,14 @@ def select_posts(only_published=True, **filters):
 class PostListMixin:
     model = Post
     paginate_by = 10
+
+
+class PostActionsMixin:
+    model = Post
+    template_name = 'blog/create.html'
+
+    def get_success_url(self):
+        return reverse_lazy('blog:index')
 
 
 class PostListView(PostListMixin, ListView):
@@ -79,17 +93,38 @@ class PostDetailView(DetailView):
         return super().get_context_data(form=CommentForm(), **kwargs)
 
 
-class PostCreateView(LoginRequiredMixin, CreateView):
-    model = Post
-    template_name = 'blog/create.html'
+class PostCreateView(PostActionsMixin, LoginRequiredMixin, CreateView):
     form_class = PostForm
 
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
 
+
+class PostUpdateView(PostActionsMixin, LoginRequiredMixin, UpdateView):
+    form_class = PostForm
+
     def get_success_url(self):
-        return reverse_lazy('blog:index')
+        post_id = self.kwargs['pk']
+        return reverse_lazy('blog:post_detail', kwargs={'pk': post_id})
+
+    def dispatch(self, request, *args, **kwargs):
+        post = self.get_object()
+        if not post.author == request.user:
+            post_id = self.kwargs['pk']
+            return reverse_lazy('blog:post_detail', kwargs={'pk': post_id})
+        return super().dispatch(request, *args, **kwargs)
+
+
+class PostDeleteView(PostActionsMixin, LoginRequiredMixin, DeleteView):
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            form=PostForm(instance=self.get_object()), **kwargs
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CommentCreateView(CreateView):
