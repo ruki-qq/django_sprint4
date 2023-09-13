@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-UserModel = get_user_model()
+User = get_user_model()
 
 
 class PublishedModel(models.Model):
@@ -52,6 +52,9 @@ class Location(PublishedModel):
 class Post(PublishedModel):
     title = models.CharField(max_length=256, verbose_name='Заголовок')
     text = models.TextField(verbose_name='Текст')
+    image = models.ImageField(
+        blank=True, upload_to='posts_images', verbose_name='Изображение'
+    )
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
         help_text=(
@@ -60,7 +63,7 @@ class Post(PublishedModel):
         ),
     )
     author = models.ForeignKey(
-        UserModel,
+        User,
         on_delete=models.CASCADE,
         related_name='posts',
         verbose_name='Автор публикации',
@@ -88,3 +91,14 @@ class Post(PublishedModel):
 
     def __str__(self):
         return self.title
+
+
+class Comment(models.Model):
+    text = models.TextField(verbose_name='Текст комментария')
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='comment',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)

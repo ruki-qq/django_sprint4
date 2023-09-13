@@ -1,82 +1,110 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic.list import MultipleObjectMixin
 
-from .models import Category, Post
+from .forms import CommentForm, PostForm
+from .models import Category, Comment, Post
 
-UserModel = get_user_model()
-
-
-POSTS_COUNT = 5
-
-
-class ProfileDetailView(DetailView):
-    model = UserModel
-    template_name = 'blog/profile.html'
-    slug_field = 'username'
-    context_object_name = 'profile'
+User = get_user_model()
 
 
-class PostListView(ListView):
-    model = Post
-    queryset = (
+def select_posts(only_published=True, **filters):
+    published_filters = {'pub_date__lte': timezone.now(), 'is_published': True}
+    if not only_published:
+        published_filters = {}
+    return (
         Post.objects.select_related('category', 'author')
         .prefetch_related('location')
-        .filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True,
-        )
+        .filter(**published_filters, **filters)
     )
+
+
+class PostListMixin:
+    model = Post
     paginate_by = 10
 
 
-def index(request):
-    template = 'blog/index.html'
-    post_list = (
-        Post.objects.select_related('category', 'author')
-        .prefetch_related('location')
-        .filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True,
-        )[:POSTS_COUNT]
-    )
-    context = {'post_list': post_list}
-    return render(request, template, context)
+class PostListView(PostListMixin, ListView):
+    template_name = 'blog/index.html'
+
+    filters = {
+        'category__is_published': True,
+    }
+    queryset = select_posts(**filters)
 
 
-def post_detail(request, id):
-    template = 'blog/detail.html'
-    post = get_object_or_404(
-        Post.objects.select_related('category', 'author')
-        .prefetch_related('location')
-        .filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True,
-        ),
-        pk=id,
-    )
-    context = {'post': post}
-    return render(request, template, context)
+class CategoryPostListView(PostListMixin, ListView):
+    template_name = 'blog/category.html'
 
+    def get_queryset(self):
+        filters = {
+            'category__slug': self.kwargs['category_slug'],
+        }
+        return select_posts(**filters)
 
-def category_posts(request, category_slug):
-    template = 'blog/category.html'
-    category = get_object_or_404(
-        Category.objects.filter(is_published=True),
-        slug=category_slug,
-    )
-    post_list = (
-        Post.objects.select_related('category', 'author')
-        .prefetch_related('location')
-        .filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__slug=category_slug,
+    def get_context_data(self, **kwargs):
+        category = get_object_or_404(
+            Category.objects.filter(is_published=True),
+            slug=self.kwargs['category_slug'],
         )
-    )
-    context = {'category': category, 'post_list': post_list}
-    return render(request, template, context)
+        return super().get_context_data(category=category, **kwargs)
+
+
+class ProfileDetailView(DetailView, MultipleObjectMixin):
+    model = User
+    template_name = 'blog/profile.html'
+    slug_field = 'username'
+    context_object_name = 'profile'
+    paginate_by = 10
+
+    def get_context_data(self, **kwargs):
+        filters = {
+            'category__is_published': True,
+            'author': self.get_object(),
+        }
+        return super().get_context_data(
+            object_list=select_posts(False, **filters), **kwargs
+        )
+
+
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/detail.html'
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(form=CommentForm(), **kwargs)
+
+
+class PostCreateView(LoginRequiredMixin, CreateView):
+    model = Post
+    template_name = 'blog/create.html'
+    form_class = PostForm
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('blog:index')
+
+
+class CommentCreateView(CreateView):
+    post = None
+    model = Comment
+    form_class = CommentForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.post = get_object_or_404(Post, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.birthday = self.post
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return 'harosh'

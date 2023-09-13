@@ -1,19 +1,31 @@
 from django.urls import path
 
 from . import views
-from .views import ProfileDetailView
+from .views import (
+    ProfileDetailView,
+    PostListView,
+    PostDetailView,
+    CategoryPostListView,
+    CommentCreateView,
+    PostCreateView,
+)
 
 app_name = 'blog'
 
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('posts/<int:id>/', views.post_detail, name='post_detail'),
+    path('', PostListView.as_view(), name='index'),
+    path('posts/<int:pk>/', PostDetailView.as_view(), name='post_detail'),
+    path(
+        'posts/<int:pk>/comment/',
+        CommentCreateView.as_view(),
+        name='add_comment',
+    ),
     path(
         'category/<slug:category_slug>/',
-        views.category_posts,
+        CategoryPostListView.as_view(),
         name='category_posts',
     ),
-    path('create_post/', views.index, name='create_post'),
+    path('posts/create/', PostCreateView.as_view(), name='create_post'),
     path('profile/<slug:slug>/', ProfileDetailView.as_view(), name='profile'),
 ]

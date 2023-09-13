@@ -14,4 +14,4 @@ class UserMixin:
 class UsersCreateView(UserMixin, CreateView):
     template_name = 'registration/registration_form.html'
     form_class = MyUserCreationForm
-    success_url = reverse_lazy('pages:homepage')
+    success_url = reverse_lazy('blog:index')
