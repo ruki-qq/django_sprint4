@@ -10,6 +10,7 @@ from .views import (
     PostCreateView,
     PostUpdateView,
     PostDeleteView,
+    ProfileUpdateView,
 )
 
 app_name = 'blog'
@@ -34,4 +35,9 @@ urlpatterns = [
     ),
     path('posts/create/', PostCreateView.as_view(), name='create_post'),
     path('profile/<slug:slug>/', ProfileDetailView.as_view(), name='profile'),
+    path(
+        'edit_profile/',
+        ProfileUpdateView.as_view(),
+        name='edit_profile',
+    ),
 ]

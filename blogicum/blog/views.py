@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -85,6 +86,18 @@ class ProfileDetailView(DetailView, MultipleObjectMixin):
         )
 
 
+class ProfileUpdateView(UpdateView):
+    model = User
+    template_name = 'blog/user.html'
+    fields = ['username', 'email', 'first_name', 'last_name']
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_success_url(self):
+        return reverse_lazy('blog:profile', kwargs={'slug': self.request.user})
+
+
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
@@ -110,9 +123,8 @@ class PostUpdateView(PostActionsMixin, LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         post = self.get_object()
-        if not post.author == request.user:
-            post_id = self.kwargs['pk']
-            return reverse_lazy('blog:post_detail', kwargs={'pk': post_id})
+        if post.author != request.user:
+            return redirect('blog:post_detail', pk=self.kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -123,7 +135,9 @@ class PostDeleteView(PostActionsMixin, LoginRequiredMixin, DeleteView):
         )
 
     def dispatch(self, request, *args, **kwargs):
-        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+        post = self.get_object()
+        if post.author != request.user:
+            return redirect('blog:post_detail', pk=self.kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
 
 
