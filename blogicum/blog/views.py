@@ -120,6 +120,7 @@ class PostCreateView(PostActionsMixin, CreateView):
     def dispatch(self, request, *args, **kwargs):
         return super(PostActionsMixin, self).dispatch(request, *args, **kwargs)
 
+
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
