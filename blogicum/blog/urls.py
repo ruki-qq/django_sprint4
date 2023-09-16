@@ -1,41 +1,43 @@
-from django.urls import path
+from django.urls import path, include
 
 from . import views
+from users.views import ProfileDetailView, ProfileUpdateView
 
 app_name = 'blog'
 
-
-urlpatterns = [
-    path('', views.PostListView.as_view(), name='index'),
+posts_urls = [
+    path('<int:pk>/', views.PostDetailView.as_view(), name='post_detail'),
+    path('create/', views.PostCreateView.as_view(), name='create_post'),
     path(
-        'posts/<int:pk>/', views.PostDetailView.as_view(), name='post_detail'
-    ),
-    path('posts/create/', views.PostCreateView.as_view(), name='create_post'),
-    path(
-        'posts/<int:pk>/edit/',
+        '<int:pk>/edit/',
         views.PostUpdateView.as_view(),
         name='edit_post',
     ),
     path(
-        'posts/<int:pk>/delete/',
+        '<int:pk>/delete/',
         views.PostDeleteView.as_view(),
         name='delete_post',
     ),
     path(
-        'posts/<int:pk>/comment/',
+        '<int:pk>/comment/',
         views.CommentCreateView.as_view(),
         name='add_comment',
     ),
     path(
-        'posts/<int:post_pk>/edit_comment/<int:pk>/',
+        '<int:post_pk>/edit_comment/<int:pk>/',
         views.CommentUpdateView.as_view(),
         name='edit_comment',
     ),
     path(
-        'posts/<int:post_pk>/delete_comment/<int:pk>/',
+        '<int:post_pk>/delete_comment/<int:pk>/',
         views.CommentDeleteView.as_view(),
         name='delete_comment',
     ),
+]
+
+urlpatterns = [
+    path('', views.PostListView.as_view(), name='index'),
+    path('posts/', include(posts_urls)),
     path(
         'category/<slug:slug>/',
         views.CategoryPostListView.as_view(),
@@ -43,12 +45,12 @@ urlpatterns = [
     ),
     path(
         'profile/<slug:slug>/',
-        views.ProfileDetailView.as_view(),
+        ProfileDetailView.as_view(),
         name='profile',
     ),
     path(
         'edit_profile/',
-        views.ProfileUpdateView.as_view(),
+        ProfileUpdateView.as_view(),
         name='edit_profile',
     ),
 ]

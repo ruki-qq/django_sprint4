@@ -1,15 +1,20 @@
 from django import forms
 
+from .constants import DATETIME_FORMAT
 from .models import Comment, Post
 
 
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        exclude = ('is_published', 'author')
+        exclude = (
+            'is_published',
+            'author',
+        )
         widgets = {
             'pub_date': forms.DateTimeInput(
-                format='%Y-%m-%d %H:%M:%S', attrs={'type': 'datetime-local'}
+                format=DATETIME_FORMAT,
+                attrs={'type': 'datetime-local'},
             )
         }
 

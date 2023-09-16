@@ -11,14 +11,13 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-from django.views.generic.list import MultipleObjectMixin
 
 from .forms import CommentForm, PostForm
+from .mixins import CommentActionsMixin, PostActionsMixin, PostListMixin
 from .models import Category, Post
-from core.mixins import CommentActionsMixin, PostActionsMixin, PostListMixin
 from core.utils import select_posts
 
-User = get_user_model()
+UserModel = get_user_model()
 
 
 class PostListView(PostListMixin, ListView):
@@ -47,45 +46,6 @@ class CategoryPostListView(PostListMixin, ListView):
             slug=self.kwargs[self.category_slug],
         )
         return super().get_context_data(category=category, **kwargs)
-
-
-class ProfileDetailView(DetailView, MultipleObjectMixin):
-    model = User
-    template_name = 'blog/profile.html'
-    slug_field = 'username'
-    context_object_name = 'profile'
-    paginate_by = 10
-    profile_slug = 'slug'
-
-    def get_context_data(self, **kwargs):
-        filters = {
-            'author': self.get_object(),
-        }
-        if self.kwargs[self.profile_slug] != self.request.user.username:
-            filters['category__is_published'] = True
-            only_published = True
-        else:
-            only_published = False
-        return super().get_context_data(
-            object_list=select_posts(only_published, **filters), **kwargs
-        )
-
-
-class ProfileUpdateView(UpdateView):
-    model = User
-    template_name = 'blog/user.html'
-    fields = ('username', 'email', 'first_name', 'last_name')
-
-    def get_object(self, queryset=None):
-        return self.request.user
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.is_anonymous:
-            raise Http404
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse('blog:profile', kwargs={'slug': self.request.user})
 
 
 class PostDetailView(DetailView):
